@@ -84,11 +84,30 @@ class BaseDatos:
             caracteres = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
             codigo = f"MSG-{caracteres}"
         
+        # ORDEN ESTRICTO: texto_cifrado, iv, hash_integridad, llave_aes_cifrada, id_referencia
         self.cursor.execute("""
             INSERT INTO mensajes (codigo_anonimo, emisor, destinatario, texto_cifrado, iv, hash_integridad, llave_aes_cifrada, id_referencia) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (codigo, emisor, destinatario, texto_cifrado, iv, hash_integridad, llave_aes_cifrada, id_referencia))
         self.conexion.commit()
+
+    def obtener_detalle_mensaje(self, id_mensaje):
+        """Recupera los metadatos de control interno del mensaje original."""
+        self.cursor.execute("""
+            SELECT texto_cifrado, iv, hash_integridad, emisor, destinatario, codigo_anonimo, llave_aes_cifrada, id_referencia 
+            FROM mensajes WHERE id = ?
+        """, (id_mensaje,))
+        return self.cursor.fetchone()
+
+    def obtener_hilo_completo(self, id_raiz):
+        """Recupera el mensaje raíz y todas sus respuestas ordenadas por ID."""
+        self.cursor.execute("""
+            SELECT id, texto_cifrado, iv, hash_integridad, emisor, destinatario, llave_aes_cifrada, id_referencia 
+            FROM mensajes 
+            WHERE id = ? OR id_referencia = ?
+            ORDER BY id ASC
+        """, (id_raiz, id_raiz))
+        return self.cursor.fetchall()
 
     def obtener_mensajes_publicos(self):
         query = """
@@ -99,21 +118,6 @@ class BaseDatos:
         WHERE r.id_referencia IS NULL
         """
         self.cursor.execute(query)
-        return self.cursor.fetchall()
-
-    def obtener_detalle_mensaje(self, id_mensaje):
-        # Modificado para recuperar los 8 campos necesarios incluyendo la llave cifrada
-        self.cursor.execute("SELECT texto_cifrado, iv, hash_integridad, emisor, destinatario, codigo_anonimo, llave_aes_cifrada, id_referencia FROM mensajes WHERE id = ?", (id_mensaje,))
-        return self.cursor.fetchone()
-
-    def obtener_hilo_completo(self, id_raiz):
-        query = """
-        SELECT id, texto_cifrado, iv, hash_integridad, emisor, destinatario, llave_aes_cifrada, id_referencia 
-        FROM mensajes 
-        WHERE id = ? OR id_referencia = ?
-        ORDER BY id ASC
-        """
-        self.cursor.execute(query, (id_raiz, id_raiz))
         return self.cursor.fetchall()
 
     def cerrar(self):
