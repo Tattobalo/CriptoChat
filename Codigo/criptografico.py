@@ -1,14 +1,40 @@
 import hashlib
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, serialization
 import os
 
 class ModuloCriptografico:
     def __init__(self):
-        # 1. Generación de llaves RSA (Asimétrico) persistentes en la instancia para el sistema
-        self.private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-        self.public_key = self.private_key.public_key()
+        ruta_privada = "clave_privada.pem"
+        ruta_publica = "clave_publica.pem"
+        
+        # Si las llaves ya existen en tu carpeta, las cargamos de forma permanente
+        if os.path.exists(ruta_privada) and os.path.exists(ruta_publica):
+            with open(ruta_privada, "rb") as key_file:
+                self.private_key = serialization.load_pem_private_key(
+                    key_file.read(),
+                    password=None
+                )
+            self.public_key = self.private_key.public_key()
+        else:
+            # Si es la primera vez que se ejecuta, las creamos y las escribimos en disco
+            self.private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+            self.public_key = self.private_key.public_key()
+            
+            # Guardar la clave privada en el disco duro de tu Fedora
+            with open(ruta_privada, "wb") as f:
+                f.write(self.private_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.TraditionalOpenSSL,
+                    encryption_algorithm=serialization.NoEncryption()
+                ))
+            # Guardar la clave pública en el disco duro de tu Fedora
+            with open(ruta_publica, "wb") as f:
+                f.write(self.public_key.public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo
+                ))
 
     def calcular_hash(self, datos: bytes) -> str:
         """Genera un hash SHA-256 para comprobar la integridad de los datos."""

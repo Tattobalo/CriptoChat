@@ -1,0 +1,12 @@
+# Excluir las llaves criptográficas del sistema
+*.pem
+clave_privada.pem
+clave_publica.pem
+
+# Excluir la base de datos local con los mensajes reales
+*.db
+datos_sistema.db
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
